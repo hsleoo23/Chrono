@@ -35,6 +35,9 @@ struct HomeView: View {
         ScheduleItem(type: "MEALS", title: "吃午饭", tag: "MEALS", tagColor: Color(red: 0.949, green: 0.718, blue: 0.0), time: "12:10", subTag: nil, subTagColor: nil)
     ]
     
+    @State private var selectedTab: Int = 0 // 0: todo, 1: done
+    let tabs = ["todo", "done"]
+    
     // 时间字符串转Date
     func timeStringToDate(_ str: String) -> Date? {
         let formatter = DateFormatter()
@@ -90,79 +93,124 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // All Day 卡片
-                if !allDayItems.isEmpty {
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
+                // 顶部标题
+                Text("Today")
+                    .font(.system(size: 32, weight: .heavy))
+                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                    .padding(.top, 24)
+                    .padding(.leading, 24)
+                // Tab选择器
+                HStack(spacing: 0) {
+                    ForEach(0..<tabs.count, id: \.self) { idx in
+                        Button(action: { selectedTab = idx }) {
                             ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.white)
-                            }
-                            Text("All Day")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                        }
-                        .frame(width: 60)
-                        VStack(spacing: 16) {
-                            ForEach(allDayItems) { item in
-                                ScheduleCardView(item: item)
-                            }
-                        }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
-                    }
-                    .padding(.bottom, 24)
-                }
-                // 整点时间轴分组
-                ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
-                    let (hour, items) = group
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                // 动态时钟icon，兼容性处理
-                                let hourStr = hourFormatter.string(from: hour)
-                                let hourInt = Int(hourStr.prefix(2)) ?? 0
-                                let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
-                                let symbolName = "clock.\(validHour).fill"
-                                if UIImage(systemName: symbolName) != nil {
-                                    Image(systemName: symbolName)
-                                        .foregroundColor(.white)
+                                if selectedTab == idx {
+                                    RoundedRectangle(cornerRadius: 28)
+                                        .fill(Color.white)
+                                        .shadow(color: Color(red: 0.85, green: 0.8, blue: 0.75), radius: 0, x: 0, y: 0)
                                 } else {
+                                    Color.clear
+                                }
+                                Text(tabs[idx])
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(selectedTab == idx ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color(red: 0.6, green: 0.48, blue: 0.4))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                        }
+                        .frame(height: 48)
+                    }
+                }
+                .background(Color(red: 0.92, green: 0.89, blue: 0.86))
+                .cornerRadius(28)
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
+                // 内容区
+                if selectedTab == 0 {
+                    // All Day 卡片
+                    if !allDayItems.isEmpty {
+                        HStack(alignment: .top, spacing: 0) {
+                            VStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                        .frame(width: 32, height: 32)
                                     Image(systemName: "clock.fill")
                                         .foregroundColor(.white)
                                 }
-                            }
-                            Text(hourFormatter.string(from: hour))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                            if idx != timelineGroups.count - 1 {
-                                Rectangle()
-                                    .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
-                                    .frame(width: 4, height: CGFloat(items.count) * 72)
+                                Text("All Day")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
                                     .offset(y: 8)
                             }
-                        }
-                        .frame(width: 60)
-                        VStack(spacing: 16) {
-                            ForEach(items) { item in
-                                ScheduleCardView(item: item)
+                            .frame(width: 60)
+                            VStack(spacing: 16) {
+                                ForEach(allDayItems) { item in
+                                    ScheduleCardView(item: item)
+                                }
                             }
+                            .padding(.leading, 0)
+                            .padding(.trailing, 16)
                         }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.bottom, 24)
+                    // 整点时间轴分组
+                    ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
+                        let (hour, items) = group
+                        HStack(alignment: .top, spacing: 0) {
+                            VStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                        .frame(width: 32, height: 32)
+                                    // 动态时钟icon，兼容性处理
+                                    let hourStr = hourFormatter.string(from: hour)
+                                    let hourInt = Int(hourStr.prefix(2)) ?? 0
+                                    let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
+                                    let symbolName = "clock.\(validHour).fill"
+                                    if UIImage(systemName: symbolName) != nil {
+                                        Image(systemName: symbolName)
+                                            .foregroundColor(.white)
+                                    } else {
+                                        Image(systemName: "clock.fill")
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                Text(hourFormatter.string(from: hour))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                    .offset(y: 8)
+                                if idx != timelineGroups.count - 1 {
+                                    Rectangle()
+                                        .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
+                                        .frame(width: 4, height: CGFloat(items.count) * 72)
+                                        .offset(y: 8)
+                                }
+                            }
+                            .frame(width: 60)
+                            VStack(spacing: 16) {
+                                ForEach(items) { item in
+                                    ScheduleCardView(item: item)
+                                }
+                            }
+                            .padding(.leading, 0)
+                            .padding(.trailing, 16)
+                        }
+                        .padding(.bottom, 24)
+                    }
+                } else {
+                    // done内容区（可先留空或显示"暂无已完成事项"）
+                    VStack {
+                        Spacer().frame(height: 60)
+                        Text("暂无已完成事项")
+                            .foregroundColor(Color(red: 0.6, green: 0.48, blue: 0.4))
+                            .font(.system(size: 18, weight: .medium))
+                        Spacer()
+                    }
                 }
             }
-            .padding(.vertical, 24)
+            .padding(.vertical, 0)
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.96).ignoresSafeArea())
     }
