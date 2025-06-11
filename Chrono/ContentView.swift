@@ -37,6 +37,8 @@ struct HomeView: View {
     
     @State private var selectedTab: Int = 0 // 0: todo, 1: done
     let tabs = ["todo", "done"]
+    @State private var navIndex: Int = 0 // 0:首页 1:统计 2:灵感 3:我的
+    @State private var showAddTodo: Bool = false
     
     // 时间字符串转Date
     func timeStringToDate(_ str: String) -> Date? {
@@ -91,128 +93,156 @@ struct HomeView: View {
     }()
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // 顶部标题
-                Text("Today")
-                    .font(.system(size: 32, weight: .heavy))
-                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                    .padding(.top, 24)
-                    .padding(.leading, 24)
-                // Tab选择器
-                HStack(spacing: 0) {
-                    ForEach(0..<tabs.count, id: \.self) { idx in
-                        Button(action: { selectedTab = idx }) {
-                            ZStack {
-                                if selectedTab == idx {
-                                    RoundedRectangle(cornerRadius: 28)
-                                        .fill(Color.white)
-                                        .shadow(color: Color(red: 0.85, green: 0.8, blue: 0.75), radius: 0, x: 0, y: 0)
-                                } else {
-                                    Color.clear
-                                }
-                                Text(tabs[idx])
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(selectedTab == idx ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color(red: 0.6, green: 0.48, blue: 0.4))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                            }
-                        }
-                        .frame(height: 48)
-                    }
-                }
-                .background(Color(red: 0.92, green: 0.89, blue: 0.86))
-                .cornerRadius(28)
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
-                // 内容区
-                if selectedTab == 0 {
-                    // All Day 卡片
-                    if !allDayItems.isEmpty {
-                        HStack(alignment: .top, spacing: 0) {
-                            VStack {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                        .frame(width: 32, height: 32)
-                                    Image(systemName: "clock.fill")
-                                        .foregroundColor(.white)
-                                }
-                                Text("All Day")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .offset(y: 8)
-                            }
-                            .frame(width: 60)
-                            VStack(spacing: 16) {
-                                ForEach(allDayItems) { item in
-                                    ScheduleCardView(item: item)
-                                }
-                            }
-                            .padding(.leading, 0)
-                            .padding(.trailing, 16)
-                        }
-                        .padding(.bottom, 24)
-                    }
-                    // 整点时间轴分组
-                    ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
-                        let (hour, items) = group
-                        HStack(alignment: .top, spacing: 0) {
-                            VStack {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                        .frame(width: 32, height: 32)
-                                    // 动态时钟icon，兼容性处理
-                                    let hourStr = hourFormatter.string(from: hour)
-                                    let hourInt = Int(hourStr.prefix(2)) ?? 0
-                                    let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
-                                    let symbolName = "clock.\(validHour).fill"
-                                    if UIImage(systemName: symbolName) != nil {
-                                        Image(systemName: symbolName)
-                                            .foregroundColor(.white)
-                                    } else {
-                                        Image(systemName: "clock.fill")
-                                            .foregroundColor(.white)
+        ZStack(alignment: .bottom) {
+            Group {
+                if navIndex == 0 {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // 顶部标题
+                            Text("Today")
+                                .font(.system(size: 32, weight: .heavy))
+                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                .padding(.top, 24)
+                                .padding(.leading, 24)
+                            // Tab选择器
+                            HStack(spacing: 0) {
+                                ForEach(0..<tabs.count, id: \.self) { idx in
+                                    Button(action: { selectedTab = idx }) {
+                                        ZStack {
+                                            if selectedTab == idx {
+                                                RoundedRectangle(cornerRadius: 28)
+                                                    .fill(Color.white)
+                                                    .shadow(color: Color(red: 0.85, green: 0.8, blue: 0.75), radius: 0, x: 0, y: 0)
+                                            } else {
+                                                Color.clear
+                                            }
+                                            Text(tabs[idx])
+                                                .font(.system(size: 18, weight: .bold))
+                                                .foregroundColor(selectedTab == idx ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color(red: 0.6, green: 0.48, blue: 0.4))
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                        }
                                     }
-                                }
-                                Text(hourFormatter.string(from: hour))
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .offset(y: 8)
-                                if idx != timelineGroups.count - 1 {
-                                    Rectangle()
-                                        .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
-                                        .frame(width: 4, height: CGFloat(items.count) * 72)
-                                        .offset(y: 8)
+                                    .frame(height: 48)
                                 }
                             }
-                            .frame(width: 60)
-                            VStack(spacing: 16) {
-                                ForEach(items) { item in
-                                    ScheduleCardView(item: item)
+                            .background(Color(red: 0.92, green: 0.89, blue: 0.86))
+                            .cornerRadius(28)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
+                            .padding(.bottom, 16)
+                            // 内容区
+                            if selectedTab == 0 {
+                                // All Day 卡片
+                                if !allDayItems.isEmpty {
+                                    HStack(alignment: .top, spacing: 0) {
+                                        VStack {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                                    .frame(width: 32, height: 32)
+                                                Image(systemName: "clock.fill")
+                                                    .foregroundColor(.white)
+                                            }
+                                            Text("All Day")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                                .offset(y: 8)
+                                        }
+                                        .frame(width: 60)
+                                        VStack(spacing: 16) {
+                                            ForEach(allDayItems) { item in
+                                                ScheduleCardView(item: item)
+                                            }
+                                        }
+                                        .padding(.leading, 0)
+                                        .padding(.trailing, 16)
+                                    }
+                                    .padding(.bottom, 24)
+                                }
+                                // 整点时间轴分组
+                                ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
+                                    let (hour, items) = group
+                                    HStack(alignment: .top, spacing: 0) {
+                                        VStack {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                                    .frame(width: 32, height: 32)
+                                                // 动态时钟icon，兼容性处理
+                                                let hourStr = hourFormatter.string(from: hour)
+                                                let hourInt = Int(hourStr.prefix(2)) ?? 0
+                                                let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
+                                                let symbolName = "clock.\(validHour).fill"
+                                                if UIImage(systemName: symbolName) != nil {
+                                                    Image(systemName: symbolName)
+                                                        .foregroundColor(.white)
+                                                } else {
+                                                    Image(systemName: "clock.fill")
+                                                        .foregroundColor(.white)
+                                                }
+                                            }
+                                            Text(hourFormatter.string(from: hour))
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                                .offset(y: 8)
+                                            if idx != timelineGroups.count - 1 {
+                                                Rectangle()
+                                                    .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
+                                                    .frame(width: 4, height: CGFloat(items.count) * 72)
+                                                    .offset(y: 8)
+                                            }
+                                        }
+                                        .frame(width: 60)
+                                        VStack(spacing: 16) {
+                                            ForEach(items) { item in
+                                                ScheduleCardView(item: item)
+                                            }
+                                        }
+                                        .padding(.leading, 0)
+                                        .padding(.trailing, 16)
+                                    }
+                                    .padding(.bottom, 24)
+                                }
+                            } else {
+                                // done内容区（可先留空或显示"暂无已完成事项"）
+                                VStack {
+                                    Spacer().frame(height: 60)
+                                    Text("暂无已完成事项")
+                                        .foregroundColor(Color(red: 0.6, green: 0.48, blue: 0.4))
+                                        .font(.system(size: 18, weight: .medium))
+                                    Spacer()
                                 }
                             }
-                            .padding(.leading, 0)
-                            .padding(.trailing, 16)
                         }
-                        .padding(.bottom, 24)
+                        .padding(.vertical, 0)
                     }
                 } else {
-                    // done内容区（可先留空或显示"暂无已完成事项"）
+                    // 其他tab页面暂时空白
                     VStack {
-                        Spacer().frame(height: 60)
-                        Text("暂无已完成事项")
-                            .foregroundColor(Color(red: 0.6, green: 0.48, blue: 0.4))
-                            .font(.system(size: 18, weight: .medium))
+                        Spacer()
+                        Text("空白页面")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 20, weight: .medium))
                         Spacer()
                     }
                 }
             }
-            .padding(.vertical, 0)
+            // 底部自定义导航栏
+            CustomTabBar(navIndex: $navIndex, showAddTodo: $showAddTodo)
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.96).ignoresSafeArea())
+        // 新建todo页面弹出
+        .fullScreenCover(isPresented: $showAddTodo) {
+            VStack {
+                Spacer()
+                Text("新建TODO页面（空白）")
+                    .font(.system(size: 22, weight: .bold))
+                Spacer()
+                Button("关闭") { showAddTodo = false }
+                    .padding()
+            }
+        }
     }
 }
 
@@ -323,6 +353,78 @@ struct ScheduleCardView: View {
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 8)
         .frame(maxWidth: 320, alignment: .trailing)
+    }
+}
+
+// 自定义底部导航栏
+struct CustomTabBar: View {
+    @Binding var navIndex: Int
+    @Binding var showAddTodo: Bool
+    var body: some View {
+        ZStack {
+            HStack {
+                Spacer()
+                ForEach(0..<2) { i in
+                    TabBarItem(index: i, navIndex: $navIndex)
+                    Spacer()
+                }
+                Spacer().frame(width: 56) // 中间加号预留
+                ForEach(2..<4) { i in
+                    Spacer()
+                    TabBarItem(index: i, navIndex: $navIndex)
+                }
+                Spacer()
+            }
+            .frame(height: 72)
+            .background(
+                RoundedRectangle(cornerRadius: 36)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 0)
+            )
+            .padding(.horizontal, 12)
+            // 中间加号
+            Button(action: { showAddTodo = true }) {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 0.65, green: 0.8, blue: 0.45))
+                        .frame(width: 64, height: 64)
+                        .shadow(color: Color(red: 0.65, green: 0.8, blue: 0.45).opacity(0.18), radius: 16, x: 0, y: 4)
+                    Image(systemName: "plus")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .offset(y: -32)
+        }
+        .padding(.bottom, 8)
+    }
+}
+
+struct TabBarItem: View {
+    let index: Int
+    @Binding var navIndex: Int
+    var body: some View {
+        Button(action: { navIndex = index }) {
+            ZStack {
+                if navIndex == index {
+                    Circle()
+                        .fill(Color(red: 0.96, green: 0.93, blue: 0.89))
+                        .frame(width: 40, height: 40)
+                }
+                Image(systemName: tabIconName)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(navIndex == index ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color.gray.opacity(0.6))
+            }
+        }
+    }
+    var tabIconName: String {
+        switch index {
+        case 0: return "house.fill"
+        case 1: return "chart.bar"
+        case 2: return "lightbulb"
+        case 3: return "person"
+        default: return "circle"
+        }
     }
 }
 
