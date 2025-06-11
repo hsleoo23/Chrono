@@ -5,7 +5,14 @@ let tagColors: [String: Color] = [
     "NOTICE": Color.orange,
     "MEALS": Color(red: 0.949, green: 0.718, blue: 0.0),
     "SPORT": Color.pink,
-    "WORK": Color.blue
+    "WORK": Color.blue,
+    "健康": Color.green,
+    "能量": Color.yellow,
+    "补充": Color.purple,
+    "有氧": Color.cyan,
+    "户外": Color.brown,
+    "打工": Color.blue,
+    "专注": Color.indigo
 ]
 
 struct ScheduleItem: Identifiable {
@@ -16,6 +23,7 @@ struct ScheduleItem: Identifiable {
     let time: String? // 具体时间段
     let subTag: String?
     let subTagColor: Color?
+    let otherTags: [String]? // 新增，支持多个标签
 }
 
 // 用于动态获取分组高度

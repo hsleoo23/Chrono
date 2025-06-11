@@ -25,10 +25,8 @@ struct ScheduleCardView: View {
         return nil
     }
     // 其他标签（done页：不含总用时）
-    var otherTags: [(String, Color?)] {
-        // 这里假设item.subTag为总用时，item.subTagColor为nil或无用时色，其他标签可扩展为item.otherTags
-        // 目前只演示主标签和总用时，若有更多标签可在ScheduleItem中扩展数组
-        return [] // 预留扩展
+    var otherTags: [String] {
+        item.otherTags ?? []
     }
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -81,7 +79,6 @@ struct ScheduleCardView: View {
                 // 第二行：Done页所有标签靠左，结束时间靠右
                 if isDoneStyle {
                     HStack(spacing: 6) {
-                        // 总用时靠左
                         if let duration = durationText {
                             Text(duration)
                                 .font(.system(size: 13, weight: .semibold))
@@ -91,14 +88,13 @@ struct ScheduleCardView: View {
                                 .background(Color.gray.opacity(0.15))
                                 .cornerRadius(4)
                         }
-                        // 其他标签靠左，背景色与todo页一致
-                        ForEach(otherTags, id: \.0) { tag, color in
+                        ForEach(otherTags, id: \.self) { tag in
                             Text("#" + tag)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
-                                .background((color ?? tagColors[tag] ?? Color.gray).opacity(0.15))
+                                .background((tagColors[tag] ?? Color.gray).opacity(0.15))
                                 .cornerRadius(4)
                         }
                         Spacer()
@@ -121,13 +117,13 @@ struct ScheduleCardView: View {
                             }
                         }
                         Spacer()
-                        if let subTag = item.subTag, let subTagColor = item.subTagColor {
+                        if let subTag = item.subTag {
                             Text("#" + subTag)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
-                                .background(subTagColor)
+                                .background((tagColors[subTag] ?? Color.gray).opacity(0.15))
                                 .cornerRadius(4)
                         }
                     }

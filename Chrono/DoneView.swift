@@ -5,14 +5,14 @@ struct DoneView: View {
     @Binding var showAddTodo: Bool
     @Binding var selectedTab: Int
     let tabs: [String]
-    // 独立的done页数据
+    // 独立的done页数据，部分日程带有多个标签
     let doneSchedules: [ScheduleItem] = [
-        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil),
-        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil),
-        ScheduleItem(type: "SPORT", title: "爬坡", tag: "SPORT", time: "08:00 - 08:40", subTag: "40分钟", subTagColor: Color(red: 0.976, green: 0.96, blue: 0.785)),
-        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: "08:51 - 08:51", subTag: "5秒", subTagColor: nil),
-        ScheduleItem(type: "WORK", title: "打工打工", tag: "WORK", time: "09:00 - 12:00", subTag: "3小时", subTagColor: Color(red: 0.949, green: 0.949, blue: 0.8)),
-        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: "12:16 - 12:39", subTag: "23分钟", subTagColor: nil)
+        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil, otherTags: ["健康", "能量"]),
+        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil, otherTags: ["补充"]),
+        ScheduleItem(type: "SPORT", title: "爬坡", tag: "SPORT", time: "08:00 - 08:40", subTag: "40分钟", subTagColor: Color(red: 0.976, green: 0.96, blue: 0.785), otherTags: ["有氧", "户外"]),
+        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: "08:51 - 08:51", subTag: "5秒", subTagColor: nil, otherTags: []),
+        ScheduleItem(type: "WORK", title: "打工打工", tag: "WORK", time: "09:00 - 12:00", subTag: "3小时", subTagColor: Color(red: 0.949, green: 0.949, blue: 0.8), otherTags: ["打工", "专注"]),
+        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: "12:16 - 12:39", subTag: "23分钟", subTagColor: nil, otherTags: ["补充", "能量"])
     ]
     var allDayItems: [ScheduleItem] {
         doneSchedules.filter { $0.time == nil }
