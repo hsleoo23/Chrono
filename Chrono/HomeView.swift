@@ -1,14 +1,53 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject var store: ScheduleStore
     @Binding var navIndex: Int
     @Binding var showAddTodo: Bool
     @Binding var selectedTab: Int
     let tabs: [String]
-    let schedules: [ScheduleItem]
-    let allDayItems: [ScheduleItem]
-    let timelineGroups: [(hour: Date, items: [ScheduleItem])]
-    let hourFormatter: DateFormatter
+    var allDayItems: [ScheduleItem] {
+        store.todoItems.filter { $0.time == nil }
+    }
+    func timeStringToDate(_ str: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.date(from: str)
+    }
+    var timedItems: [(item: ScheduleItem, start: Date)] {
+        store.todoItems.compactMap { item in
+            guard let time = item.time else { return nil }
+            let startStr = time.components(separatedBy: "-").first?.trimmingCharacters(in: .whitespaces) ?? time
+            if let date = timeStringToDate(startStr) {
+                return (item, date)
+            }
+            return nil
+        }.sorted { $0.start < $1.start }
+    }
+    var timelineHours: [Date] {
+        let calendar = Calendar.current
+        let hoursSet = Set(timedItems.map { calendar.component(.hour, from: $0.start) })
+        let today = Date()
+        let hourDates = hoursSet.map { hour -> Date in
+            calendar.date(bySettingHour: hour, minute: 0, second: 0, of: today)!
+        }
+        return hourDates.sorted()
+    }
+    var timelineGroups: [(hour: Date, items: [ScheduleItem])] {
+        let calendar = Calendar.current
+        return timelineHours.map { hour in
+            let hourInt = calendar.component(.hour, from: hour)
+            let items = timedItems.filter {
+                calendar.component(.hour, from: $0.start) == hourInt
+            }.map { $0.item }
+            return (hour, items)
+        }
+    }
+    let hourFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -64,7 +103,7 @@ struct HomeView: View {
                         .frame(width: 60)
                         VStack(spacing: 16) {
                             ForEach(allDayItems) { item in
-                                ScheduleCardView(item: item)
+                                ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { store.markAsDone(item) })
                             }
                         }
                         .padding(.leading, 0)
@@ -80,7 +119,6 @@ struct HomeView: View {
                                 Circle()
                                     .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
                                     .frame(width: 32, height: 32)
-                                // 动态时钟icon，兼容性处理
                                 let hourStr = hourFormatter.string(from: hour)
                                 let hourInt = Int(hourStr.prefix(2)) ?? 0
                                 let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
@@ -110,7 +148,7 @@ struct HomeView: View {
                         .frame(width: 60)
                         VStack(spacing: 12) {
                             ForEach(items) { item in
-                                ScheduleCardView(item: item)
+                                ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { store.markAsDone(item) })
                             }
                         }
                         .padding(.leading, 0)

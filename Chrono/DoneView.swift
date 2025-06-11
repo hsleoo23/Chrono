@@ -1,21 +1,13 @@
 import SwiftUI
 
 struct DoneView: View {
+    @EnvironmentObject var store: ScheduleStore
     @Binding var navIndex: Int
     @Binding var showAddTodo: Bool
     @Binding var selectedTab: Int
     let tabs: [String]
-    // 独立的done页数据，部分日程带有多个标签
-    let doneSchedules: [ScheduleItem] = [
-        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil, otherTags: ["健康", "能量"]),
-        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: nil, subTag: nil, subTagColor: nil, otherTags: ["补充"]),
-        ScheduleItem(type: "SPORT", title: "爬坡", tag: "SPORT", time: "08:00 - 08:40", subTag: "40分钟", subTagColor: Color(red: 0.976, green: 0.96, blue: 0.785), otherTags: ["有氧", "户外"]),
-        ScheduleItem(type: "MEALS", title: "早饭", tag: "MEALS", time: "08:51 - 08:51", subTag: "5秒", subTagColor: nil, otherTags: []),
-        ScheduleItem(type: "WORK", title: "打工打工", tag: "WORK", time: "09:00 - 12:00", subTag: "3小时", subTagColor: Color(red: 0.949, green: 0.949, blue: 0.8), otherTags: ["打工", "专注"]),
-        ScheduleItem(type: "MEALS", title: "午饭", tag: "MEALS", time: "12:16 - 12:39", subTag: "23分钟", subTagColor: nil, otherTags: ["补充", "能量"])
-    ]
     var allDayItems: [ScheduleItem] {
-        doneSchedules.filter { $0.time == nil }
+        store.doneItems.filter { $0.time == nil }
     }
     func timeStringToDate(_ str: String) -> Date? {
         let formatter = DateFormatter()
@@ -23,7 +15,7 @@ struct DoneView: View {
         return formatter.date(from: str)
     }
     var timedItems: [(item: ScheduleItem, start: Date)] {
-        doneSchedules.compactMap { item in
+        store.doneItems.compactMap { item in
             guard let time = item.time else { return nil }
             let startStr = time.components(separatedBy: "-").first?.trimmingCharacters(in: .whitespaces) ?? time
             if let date = timeStringToDate(startStr) {
@@ -111,7 +103,7 @@ struct DoneView: View {
                         .frame(width: 60)
                         VStack(spacing: 16) {
                             ForEach(allDayItems) { item in
-                                ScheduleCardView(item: item, isDoneStyle: true)
+                                ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
                             }
                         }
                         .padding(.leading, 0)
@@ -156,7 +148,7 @@ struct DoneView: View {
                         .frame(width: 60)
                         VStack(spacing: 12) {
                             ForEach(items) { item in
-                                ScheduleCardView(item: item, isDoneStyle: true)
+                                ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
                             }
                         }
                         .padding(.leading, 0)

@@ -79,7 +79,7 @@ struct ContentView: View {
             Group {
                 if navIndex == 0 {
                     if selectedTab == 0 {
-                        HomeView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs, schedules: schedules, allDayItems: allDayItems, timelineGroups: timelineGroups, hourFormatter: hourFormatter)
+                        HomeView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs)
                     } else {
                         DoneView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs)
                     }
@@ -111,4 +111,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(ScheduleStore())
 }

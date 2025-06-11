@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct ChronoApp: App {
+    @StateObject var store = ScheduleStore()
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(store)
         }
     }
 }

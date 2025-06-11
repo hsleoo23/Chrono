@@ -3,6 +3,7 @@ import SwiftUI
 struct ScheduleCardView: View {
     let item: ScheduleItem
     var isDoneStyle: Bool = false // 新增参数，Done页传true
+    var onCircleTap: (() -> Void)? = nil // 新增参数
     
     // 计算主标签颜色
     var tagColor: Color {
@@ -39,7 +40,7 @@ struct ScheduleCardView: View {
                     .padding(.leading, 2)
             } else {
                 // Todo页左侧圆圈
-                Button(action: { /* 选中/删除逻辑 */ }) {
+                Button(action: { onCircleTap?() }) {
                     Circle()
                         .stroke(Color(red: 0.8, green: 0.78, blue: 0.77), lineWidth: 2)
                         .frame(width: 24, height: 24)
