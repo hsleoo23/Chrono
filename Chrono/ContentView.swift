@@ -13,12 +13,19 @@ struct Schedule: Identifiable {
     let items: [ScheduleItem]
 }
 
+// 标签颜色映射
+let tagColors: [String: Color] = [
+    "NOTICE": Color.orange,
+    "MEALS": Color(red: 0.949, green: 0.718, blue: 0.0),
+    "SPORT": Color.pink,
+    "WORK": Color.blue
+]
+
 struct ScheduleItem: Identifiable {
     let id = UUID()
     let type: String // 如 "NOTICE", "SPORT", "MEALS", "WORK"
     let title: String
     let tag: String
-    let tagColor: Color
     let time: String? // 具体时间段
     let subTag: String?
     let subTagColor: Color?
@@ -27,12 +34,22 @@ struct ScheduleItem: Identifiable {
 struct HomeView: View {
     // 示例数据
     let schedules: [ScheduleItem] = [
-        ScheduleItem(type: "NOTICE", title: "完成报告", tag: "NOTICE", tagColor: Color(red: 0.942, green: 0.444, blue: 0.098), time: nil, subTag: nil, subTagColor: nil),
-        ScheduleItem(type: "NOTICE", title: "买车票", tag: "NOTICE", tagColor: Color(red: 0.942, green: 0.444, blue: 0.098), time: nil, subTag: nil, subTagColor: nil),
-        ScheduleItem(type: "SPORT", title: "爬坡", tag: "SPORT", tagColor: Color(red: 0.957, green: 0.247, blue: 0.369), time: "08:00 - 08:40", subTag: "有氧", subTagColor: Color(red: 0.976, green: 0.96, blue: 0.785)),
-        ScheduleItem(type: "MEALS", title: "吃早饭", tag: "MEALS", tagColor: Color(red: 0.949, green: 0.718, blue: 0.0), time: "08:50", subTag: nil, subTagColor: nil),
-        ScheduleItem(type: "WORK", title: "打工打工", tag: "WORK", tagColor: Color(red: 0.4, green: 0.6, blue: 1.0), time: "09:00 - 12:00", subTag: "打工", subTagColor: Color(red: 0.949, green: 0.949, blue: 0.8)),
-        ScheduleItem(type: "MEALS", title: "吃午饭", tag: "MEALS", tagColor: Color(red: 0.949, green: 0.718, blue: 0.0), time: "12:10", subTag: nil, subTagColor: nil)
+        ScheduleItem(type: "NOTICE", title: "完成报告", tag: "NOTICE", time: nil, subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "NOTICE", title: "买车票", tag: "NOTICE", time: nil, subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "SPORT", title: "晨跑", tag: "SPORT", time: "07:00 - 07:30", subTag: "锻炼", subTagColor: Color(red: 0.9, green: 0.95, blue: 0.8)),
+        ScheduleItem(type: "SPORT", title: "爬坡", tag: "SPORT", time: "08:00 - 08:40", subTag: "有氧", subTagColor: Color(red: 0.976, green: 0.96, blue: 0.785)),
+        ScheduleItem(type: "MEALS", title: "吃早饭", tag: "MEALS", time: "08:50", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "WORK", title: "打工打工", tag: "WORK", time: "09:00 - 12:00", subTag: "打工", subTagColor: Color(red: 0.949, green: 0.949, blue: 0.8)),
+        ScheduleItem(type: "WORK", title: "开会", tag: "WORK", time: "10:00 - 11:00", subTag: "项目", subTagColor: Color(red: 0.8, green: 0.9, blue: 1.0)),
+        ScheduleItem(type: "MEALS", title: "吃午饭", tag: "MEALS", time: "12:10", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "MEALS", title: "下午水果", tag: "MEALS", time: "14:59", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "MEALS", title: "下午茶", tag: "MEALS", time: "15:00", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "NOTICE", title: "提交代码", tag: "NOTICE", time: "16:00", subTag: "开发", subTagColor: Color(red: 1.0, green: 0.95, blue: 0.8)),
+        ScheduleItem(type: "SPORT", title: "健身房", tag: "SPORT", time: "18:00 - 19:00", subTag: "力量", subTagColor: Color(red: 0.95, green: 0.8, blue: 0.9)),
+        ScheduleItem(type: "MEALS", title: "晚饭", tag: "MEALS", time: "19:30", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "WORK", title: "复盘总结", tag: "WORK", time: "21:00", subTag: "复盘", subTagColor: Color(red: 0.8, green: 0.9, blue: 1.0)),
+        ScheduleItem(type: "NOTICE", title: "阅读", tag: "NOTICE", time: "22:00", subTag: nil, subTagColor: nil),
+        ScheduleItem(type: "NOTICE", title: "夜间备忘", tag: "NOTICE", time: "03:46", subTag: "提醒", subTagColor: Color(red: 1.0, green: 0.95, blue: 0.8))
     ]
     
     @State private var selectedTab: Int = 0 // 0: todo, 1: done
@@ -57,29 +74,26 @@ struct HomeView: View {
             return nil
         }.sorted { $0.start < $1.start }
     }
-    // 获取所有有日程的整点时间（去重、排序）
+    // timelineHours：所有有日程的小时（无论是否整点），去重排序
     var timelineHours: [Date] {
         let calendar = Calendar.current
-        let hours = timedItems.map { calendar.date(bySetting: .minute, value: 0, of: $0.start)! }
-        let unique = Array(Set(hours)).sorted()
-        return unique
+        let hoursSet = Set(timedItems.map { calendar.component(.hour, from: $0.start) })
+        let today = Date()
+        let hourDates = hoursSet.map { hour -> Date in
+            calendar.date(bySettingHour: hour, minute: 0, second: 0, of: today)!
+        }
+        return hourDates.sorted()
     }
-    // 整点分组：每个整点下显示该整点~下一个整点之间的所有卡片
+    // timelineGroups：每个小时下显示所有该小时的日程
     var timelineGroups: [(hour: Date, items: [ScheduleItem])] {
         let calendar = Calendar.current
-        var result: [(Date, [ScheduleItem])] = []
-        for (idx, hour) in timelineHours.enumerated() {
-            // 只分组到倒数第二个整点，最后一个整点只显示本身的卡片
-            let nextHour = idx + 1 < timelineHours.count ? timelineHours[idx + 1] : nil
-            let items: [ScheduleItem]
-            if let next = nextHour {
-                items = timedItems.filter { $0.start >= hour && $0.start < next }.map { $0.item }
-            } else {
-                items = timedItems.filter { $0.start >= hour }.map { $0.item }
-            }
-            result.append((hour, items))
+        return timelineHours.map { hour in
+            let hourInt = calendar.component(.hour, from: hour)
+            let items = timedItems.filter {
+                calendar.component(.hour, from: $0.start) == hourInt
+            }.map { $0.item }
+            return (hour, items)
         }
-        return result
     }
     // 无时间段的卡片
     var allDayItems: [ScheduleItem] {
@@ -158,7 +172,7 @@ struct HomeView: View {
                                         .padding(.leading, 0)
                                         .padding(.trailing, 16)
                                     }
-                                    .padding(.bottom, 24)
+                                    .padding(.bottom, 40)
                                 }
                                 // 整点时间轴分组
                                 ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
@@ -187,22 +201,30 @@ struct HomeView: View {
                                                 .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
                                                 .offset(y: 8)
                                             if idx != timelineGroups.count - 1 {
-                                                Rectangle()
-                                                    .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
-                                                    .frame(width: 4, height: CGFloat(items.count) * 72)
-                                                    .offset(y: 8)
+                                                GeometryReader { geo in
+                                                    Rectangle()
+                                                        .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
+                                                        .frame(width: 4, height: max(geo.size.height, 44))
+                                                        .offset(y: 8)
+                                                }
+                                                .frame(width: 4)
                                             }
                                         }
                                         .frame(width: 60)
-                                        VStack(spacing: 16) {
+                                        VStack(spacing: 12) {
                                             ForEach(items) { item in
                                                 ScheduleCardView(item: item)
                                             }
                                         }
                                         .padding(.leading, 0)
                                         .padding(.trailing, 16)
+                                        .background(
+                                            GeometryReader { geo in
+                                                Color.clear.preference(key: GroupHeightKey.self, value: geo.size.height)
+                                            }
+                                        )
                                     }
-                                    .padding(.bottom, 24)
+                                    .padding(.top, idx == 0 ? 0 : 32)
                                 }
                             } else {
                                 // done内容区（可先留空或显示"暂无已完成事项"）
@@ -305,12 +327,13 @@ struct ScheduleCardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     // 主标签
+                    let tagColor = tagColors[item.tag] ?? Color.gray
                     Text(item.tag)
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(item.tagColor)
+                        .foregroundColor(tagColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(item.tagColor.opacity(0.15))
+                        .background(tagColor.opacity(0.15))
                         .cornerRadius(16)
                     Spacer()
                     // 标题
@@ -425,6 +448,14 @@ struct TabBarItem: View {
         case 3: return "person"
         default: return "circle"
         }
+    }
+}
+
+// 新增辅助PreferenceKey
+struct GroupHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 44
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
