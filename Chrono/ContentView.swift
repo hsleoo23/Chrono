@@ -81,7 +81,7 @@ struct ContentView: View {
                     if selectedTab == 0 {
                         HomeView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs, schedules: schedules, allDayItems: allDayItems, timelineGroups: timelineGroups, hourFormatter: hourFormatter)
                     } else {
-                        DoneView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs, schedules: schedules, allDayItems: allDayItems, timelineGroups: timelineGroups, hourFormatter: hourFormatter)
+                        DoneView(navIndex: $navIndex, showAddTodo: $showAddTodo, selectedTab: $selectedTab, tabs: tabs)
                     }
                 } else {
                     VStack {
