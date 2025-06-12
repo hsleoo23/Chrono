@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct ContentView: View {
     @State private var selectedTab: Int = 0 // 0: todo, 1: done
@@ -97,14 +98,7 @@ struct ContentView: View {
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.96).ignoresSafeArea())
         .fullScreenCover(isPresented: $showAddTodo) {
-            VStack {
-                Spacer()
-                Text("新建TODO页面（空白）")
-                    .font(.system(size: 22, weight: .bold))
-                Spacer()
-                Button("关闭") { showAddTodo = false }
-                    .padding()
-            }
+            AddScheduleView(showAddTodo: $showAddTodo)
         }
     }
 }
