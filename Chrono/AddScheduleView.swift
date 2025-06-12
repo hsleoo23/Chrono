@@ -65,7 +65,7 @@ struct AddScheduleView: View {
                                 .foregroundColor(mainBrown)
                             Spacer()
                             Circle()
-                                .fill(tagDotColor)
+                                .fill(tagColors[selectedCategory] ?? tagDotColor)
                                 .frame(width: 10, height: 10)
                             Text(selectedCategory)
                                 .font(.system(size: 16, weight: .medium))
@@ -73,6 +73,8 @@ struct AddScheduleView: View {
                                 .padding(.leading, 2)
                         }
                         .frame(height: 36)
+                        .contentShape(Rectangle())
+                        .onTapGesture { showCategorySheet = true }
                         Divider().padding(.vertical, 2)
                         HStack {
                             Text("标签")
@@ -90,6 +92,18 @@ struct AddScheduleView: View {
                         }
                         .frame(height: 36)
                     }
+                }
+                .sheet(isPresented: $showCategorySheet) {
+                    CategoryPickerSheet(
+                        categories: Array(tagColors.keys),
+                        selected: selectedCategory,
+                        onSelect: { cat in
+                            selectedCategory = cat
+                            showCategorySheet = false
+                        }
+                    )
+                    .presentationDetents([.fraction(0.45)])
+                    .presentationDragIndicator(.visible)
                 }
                 // 时间
                 Card {
@@ -156,12 +170,18 @@ struct AddScheduleView: View {
                 }
                 // 备注
                 Card {
-                    TextEditor(text: $note)
-                        .frame(height: 80)
-                        .padding(8)
-                        .background(cardBg)
-                        .cornerRadius(12)
-                        .foregroundColor(mainBrown.opacity(0.5))
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $note)
+                            .frame(height: 80)
+                            .foregroundColor(mainBrown.opacity(0.5))
+                            .background(Color.clear)
+                        if note.isEmpty {
+                            Text("备注")
+                                .foregroundColor(mainBrown.opacity(0.3))
+                                .padding(.top, 12)
+                                .padding(.leading, 6)
+                        }
+                    }
                 }
                 Spacer()
                 // 新建按钮
@@ -203,5 +223,55 @@ struct Card<Content: View>: View {
             .background(Color.white)
             .cornerRadius(20)
             .shadow(color: Color.black.opacity(0.04), radius: 8, y: 4)
+    }
+}
+
+// 新增类别选择弹窗组件
+struct CategoryPickerSheet: View {
+    let categories: [String]
+    let selected: String
+    let onSelect: (String) -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("选择日历")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(mainBrown)
+                Spacer()
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(mainBrown.opacity(0.5))
+                    .padding(.trailing, 8)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 8)
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(categories, id: \.self) { cat in
+                        Button(action: { onSelect(cat) }) {
+                            HStack {
+                                Circle()
+                                    .fill(tagColors[cat] ?? Color.gray)
+                                    .frame(width: 16, height: 16)
+                                Text(cat)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(mainBrown)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.white)
+                            .cornerRadius(18)
+                            .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            Spacer()
+        }
+        .background(mainBg)
     }
 } 
