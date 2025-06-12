@@ -97,8 +97,10 @@ struct ContentView: View {
             CustomTabBar(navIndex: $navIndex, showAddTodo: $showAddTodo)
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.96).ignoresSafeArea())
-        .fullScreenCover(isPresented: $showAddTodo) {
+        .sheet(isPresented: $showAddTodo) {
             AddScheduleView(showAddTodo: $showAddTodo)
+                .presentationDetents([.fraction(0.95)])
+                .presentationDragIndicator(.visible)
         }
     }
 }
