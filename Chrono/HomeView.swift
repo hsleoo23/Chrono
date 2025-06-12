@@ -63,11 +63,32 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 // 顶部标题和tab选择器，固定不动
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Today")
-                        .font(.system(size: 32, weight: .heavy))
-                        .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                        .padding(.top, 24)
-                        .padding(.leading, 24)
+                    HStack(alignment: .center) {
+                        Text("Today")
+                            .font(.system(size: 32, weight: .heavy))
+                            .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                        Spacer()
+                        Button(action: { /* 专注功能待实现 */ }) {
+                            Text("专注")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.92, green: 0.89, blue: 0.86))
+                                .cornerRadius(14)
+                        }
+                        Button(action: { showAddTodo = true }) {
+                            Text("新增")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.65, green: 0.8, blue: 0.45))
+                                .cornerRadius(14)
+                        }
+                    }
+                    .padding(.top, 24)
+                    .padding(.horizontal, 24)
                     HStack(spacing: 0) {
                         ForEach(0..<tabs.count, id: \.self) { idx in
                             Button(action: { selectedTab = idx }) {
