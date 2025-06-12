@@ -33,9 +33,12 @@ struct AddScheduleView: View {
     @State private var startTime: Date = Date()
     @State private var endTime: Date = Calendar.current.date(byAdding: .minute, value: 60, to: Date()) ?? Date()
     @State private var note: String = ""
+    @State private var showStartPicker: Bool = false
+    @State private var showEndPicker: Bool = false
     // 示例类别和标签
     let categories = ["运动", "工作", "学习", "娱乐", "饮食", "其他"]
     let tags = ["健康", "能量", "补充", "有氧", "户外", "打工", "专注"]
+    @State private var categoryColors: [String: Color] = tagColors
     var body: some View {
         ZStack {
             mainBg.ignoresSafeArea()
@@ -79,7 +82,7 @@ struct AddScheduleView: View {
                                 .foregroundColor(mainBrown)
                             Spacer()
                             Circle()
-                                .fill(tagColors[selectedCategory] ?? tagDotColor)
+                                .fill(categoryColors[selectedCategory] ?? tagDotColor)
                                 .frame(width: 10, height: 10)
                             Text(selectedCategory)
                                 .font(.system(size: 16, weight: .medium))
@@ -119,8 +122,9 @@ struct AddScheduleView: View {
                 }
                 .sheet(isPresented: $showCategorySheet) {
                     CategoryPickerSheet(
-                        categories: Array(tagColors.keys),
+                        categories: Array(categoryColors.keys),
                         selected: selectedCategory,
+                        categoryColors: $categoryColors,
                         onSelect: { cat in
                             selectedCategory = cat
                             showCategorySheet = false
@@ -142,55 +146,89 @@ struct AddScheduleView: View {
                                 .toggleStyle(SwitchToggleStyle(tint: lightBrown))
                         }
                         .frame(height: 36)
-                        Divider().padding(.vertical, 2)
-                        HStack {
-                            Text("开始")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(mainBrown)
-                            Spacer()
-                            Group {
-                                Text(dateString(startTime))
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(lightBrown)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(lightBrown.opacity(0.08))
-                                    .cornerRadius(8)
-                                Text(timeString(startTime))
+                        if !isAllDay {
+                            Divider().padding(.vertical, 2)
+                            HStack {
+                                Text("开始")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(mainBrown)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(lightBrown.opacity(0.08))
-                                    .cornerRadius(8)
+                                Spacer()
+                                Group {
+                                    Text(dateString(startTime))
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(lightBrown)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(lightBrown.opacity(0.08))
+                                        .cornerRadius(8)
+                                    Text(timeString(startTime))
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(mainBrown)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(lightBrown.opacity(0.08))
+                                        .cornerRadius(8)
+                                }
                             }
-                        }
-                        .frame(height: 36)
-                        Divider().padding(.vertical, 2)
-                        HStack {
-                            Text("结束")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(mainBrown)
-                            Spacer()
-                            Group {
-                                Text(dateString(endTime))
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(lightBrown)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(lightBrown.opacity(0.08))
-                                    .cornerRadius(8)
-                                Text(timeString(endTime))
+                            .frame(height: 36)
+                            .contentShape(Rectangle())
+                            .onTapGesture { showStartPicker = true }
+                            Divider().padding(.vertical, 2)
+                            HStack {
+                                Text("结束")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(mainBrown)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(lightBrown.opacity(0.08))
-                                    .cornerRadius(8)
+                                Spacer()
+                                Group {
+                                    Text(dateString(endTime))
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(lightBrown)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(lightBrown.opacity(0.08))
+                                        .cornerRadius(8)
+                                    Text(timeString(endTime))
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(mainBrown)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(lightBrown.opacity(0.08))
+                                        .cornerRadius(8)
+                                }
                             }
+                            .frame(height: 36)
+                            .contentShape(Rectangle())
+                            .onTapGesture { showEndPicker = true }
                         }
-                        .frame(height: 36)
                     }
+                }
+                .sheet(isPresented: $showStartPicker) {
+                    VStack {
+                        DatePicker("选择开始时间", selection: $startTime, displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.wheel)
+                            .labelsHidden()
+                            .padding()
+                        Button("完成") { showStartPicker = false }
+                            .font(.system(size: 18, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .presentationDetents([.fraction(0.35)])
+                    .presentationDragIndicator(.visible)
+                }
+                .sheet(isPresented: $showEndPicker) {
+                    VStack {
+                        DatePicker("选择结束时间", selection: $endTime, displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.wheel)
+                            .labelsHidden()
+                            .padding()
+                        Button("完成") { showEndPicker = false }
+                            .font(.system(size: 18, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .presentationDetents([.fraction(0.35)])
+                    .presentationDragIndicator(.visible)
                 }
                 // 备注
                 Card {
@@ -260,9 +298,19 @@ struct Card<Content: View>: View {
 
 // 新增类别选择弹窗组件
 struct CategoryPickerSheet: View {
-    let categories: [String]
+    @State private var showAddCategory: Bool = false
+    @State private var newCategory: String = ""
+    @State private var newColor: Color = .blue
+    @State private var categoriesState: [String]
+    @Binding var categoryColors: [String: Color]
     let selected: String
     let onSelect: (String) -> Void
+    init(categories: [String], selected: String, categoryColors: Binding<[String: Color]>, onSelect: @escaping (String) -> Void) {
+        self.selected = selected
+        self.onSelect = onSelect
+        _categoriesState = State(initialValue: categories)
+        _categoryColors = categoryColors
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -270,21 +318,23 @@ struct CategoryPickerSheet: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(mainBrown)
                 Spacer()
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(mainBrown.opacity(0.5))
-                    .padding(.trailing, 8)
+                Button(action: { showAddCategory = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(mainBrown.opacity(0.5))
+                        .padding(.trailing, 8)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
             .padding(.bottom, 8)
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(categories, id: \.self) { cat in
+                    ForEach(categoriesState, id: \.self) { cat in
                         Button(action: { onSelect(cat) }) {
                             HStack {
                                 Circle()
-                                    .fill(tagColors[cat] ?? Color.gray)
+                                    .fill(categoryColors[cat] ?? Color.gray)
                                     .frame(width: 16, height: 16)
                                 Text(cat)
                                     .font(.system(size: 18, weight: .medium))
@@ -305,6 +355,50 @@ struct CategoryPickerSheet: View {
             Spacer()
         }
         .background(mainBg)
+        .sheet(isPresented: $showAddCategory) {
+            VStack(spacing: 20) {
+                Text("新建日历类别")
+                    .font(.system(size: 20, weight: .bold))
+                    .padding(.top, 24)
+                TextField("请输入类别名称", text: $newCategory)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal, 24)
+                HStack {
+                    Text("选择颜色：")
+                        .font(.system(size: 16))
+                    ColorPicker("", selection: $newColor, supportsOpacity: false)
+                        .labelsHidden()
+                }
+                .padding(.horizontal, 24)
+                Button("添加") {
+                    let name = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !name.isEmpty && !categoriesState.contains(name) {
+                        categoriesState.append(name)
+                        categoryColors[name] = newColor
+                        onSelect(name)
+                        showAddCategory = false
+                        newCategory = ""
+                        newColor = .blue
+                    }
+                }
+                .font(.system(size: 18, weight: .bold))
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(mainBrown)
+                .foregroundColor(.white)
+                .cornerRadius(16)
+                .padding(.horizontal, 24)
+                Button("取消") {
+                    showAddCategory = false
+                    newCategory = ""
+                    newColor = .blue
+                }
+                .foregroundColor(.gray)
+                .padding(.bottom, 24)
+            }
+            .presentationDetents([.fraction(0.38)])
+            .presentationDragIndicator(.visible)
+        }
     }
 }
 
