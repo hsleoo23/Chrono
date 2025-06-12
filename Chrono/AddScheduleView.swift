@@ -7,6 +7,20 @@ let mainBrown = Color(red: 0.45, green: 0.32, blue: 0.20)
 let lightBrown = Color(red: 0.85, green: 0.8, blue: 0.75)
 let tagDotColor = Color(red: 0.98, green: 0.45, blue: 0.55)
 
+// 标签分组数据结构
+struct TagGroup {
+    let name: String
+    let color: Color
+    let tags: [String]
+}
+
+// 标签分组示例，和截图一致
+let tagGroups: [TagGroup] = [
+    TagGroup(name: "日历标签", color: Color.pink, tags: ["有氧", "健身", "户外"]),
+    TagGroup(name: "时间利用", color: Color.purple, tags: ["必需日常", "自我投资", "及时享受"]),
+    TagGroup(name: "时间性质", color: Color.blue, tags: ["重要紧急", "重要不紧急", "不重要紧急", "不重要不紧急"])
+]
+
 struct AddScheduleView: View {
     @Binding var showAddTodo: Bool
     @State private var selectedType: String = "日程"
@@ -91,6 +105,8 @@ struct AddScheduleView: View {
                             }
                         }
                         .frame(height: 36)
+                        .contentShape(Rectangle())
+                        .onTapGesture { showTagSheet = true }
                     }
                 }
                 .sheet(isPresented: $showCategorySheet) {
@@ -198,6 +214,14 @@ struct AddScheduleView: View {
             }
             .padding(.horizontal, 12)
         }
+        .sheet(isPresented: $showTagSheet) {
+            TagPickerSheet(
+                selectedTags: $selectedTags,
+                tagGroups: tagGroups
+            )
+            .presentationDetents([.fraction(0.8)])
+            .presentationDragIndicator(.visible)
+        }
     }
     // 日期格式化
     func dateString(_ date: Date) -> String {
@@ -273,5 +297,112 @@ struct CategoryPickerSheet: View {
             Spacer()
         }
         .background(mainBg)
+    }
+}
+
+// 标签Chip自动换行Grid
+struct TagChipsGrid: View {
+    let tags: [String]
+    let selectedTags: [String]
+    let onTap: (String) -> Void
+    let columns = [GridItem(.adaptive(minimum: 80), spacing: 8)]
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(tags, id: \.self) { tag in
+                TagChip(
+                    text: tag,
+                    color: selectedTags.contains(tag) ? (tagColors[tag] ?? Color.orange) : Color.gray.opacity(0.25),
+                    selected: selectedTags.contains(tag),
+                    onTap: { onTap(tag) }
+                )
+            }
+        }
+    }
+}
+
+// 标签选择弹窗组件
+struct TagPickerSheet: View {
+    @Binding var selectedTags: [String]
+    let tagGroups: [TagGroup]
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // 标题
+                Text("标签")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(mainBrown)
+                    .padding(.top, 24)
+                    .padding(.horizontal, 24)
+                // 已选标签
+                if !selectedTags.isEmpty {
+                    Card {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("已选标签")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(mainBrown)
+                            TagChipsGrid(tags: selectedTags, selectedTags: selectedTags, onTap: { tag in
+                                if let idx = selectedTags.firstIndex(of: tag) {
+                                    selectedTags.remove(at: idx)
+                                }
+                            })
+                        }
+                    }
+                }
+                // 标签分组
+                ForEach(tagGroups, id: \.name) { group in
+                    Card {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                if group.name == "日历标签" {
+                                    Circle().fill(Color.pink).frame(width: 14, height: 14)
+                                    Text("运动")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(mainBrown)
+                                    Spacer()
+                                    Image(systemName: "plus")
+                                        .foregroundColor(lightBrown)
+                                } else {
+                                    Text(group.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(mainBrown)
+                                    Spacer()
+                                    Image(systemName: "plus")
+                                        .foregroundColor(lightBrown)
+                                }
+                            }
+                            TagChipsGrid(tags: group.tags, selectedTags: selectedTags, onTap: toggleTag)
+                        }
+                    }
+                }
+                Spacer(minLength: 40)
+            }
+            .padding(.horizontal, 8)
+        }
+        .background(mainBg)
+    }
+    func toggleTag(_ tag: String) {
+        if let idx = selectedTags.firstIndex(of: tag) {
+            selectedTags.remove(at: idx)
+        } else {
+            selectedTags.append(tag)
+        }
+    }
+}
+
+// 标签Chip组件
+struct TagChip: View {
+    let text: String
+    let color: Color
+    let selected: Bool
+    let onTap: () -> Void
+    var body: some View {
+        Text("#" + text)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundColor(selected ? color : Color.gray)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(selected ? color.opacity(0.15) : Color.gray.opacity(0.10))
+            .cornerRadius(10)
+            .onTapGesture { onTap() }
     }
 } 
