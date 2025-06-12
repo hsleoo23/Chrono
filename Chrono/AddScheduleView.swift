@@ -305,18 +305,83 @@ struct TagChipsGrid: View {
     let tags: [String]
     let selectedTags: [String]
     let onTap: (String) -> Void
-    let columns = [GridItem(.adaptive(minimum: 80), spacing: 8)]
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(tags, id: \.self) { tag in
-                TagChip(
-                    text: tag,
-                    color: selectedTags.contains(tag) ? (tagColors[tag] ?? Color.orange) : Color.gray.opacity(0.25),
-                    selected: selectedTags.contains(tag),
-                    onTap: { onTap(tag) }
-                )
+        FlowLayout(tags: tags) { tag in
+            TagChip(
+                text: tag,
+                color: selectedTags.contains(tag) ? (tagColors[tag] ?? Color.orange) : Color.gray.opacity(0.25),
+                selected: selectedTags.contains(tag),
+                onTap: { onTap(tag) }
+            )
+        }
+    }
+}
+
+// 通用流式布局组件，保证每个标签整体在一行，自动换行
+struct FlowLayout<Data: RandomAccessCollection, Content: View>: View where Data.Element: Hashable {
+    let tags: Data
+    let content: (Data.Element) -> Content
+    @State private var totalHeight: CGFloat = .zero
+    
+    init(tags: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+        self.tags = tags
+        self.content = content
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            self.generateContent(in: geometry)
+        }
+        .frame(height: totalHeight)
+    }
+    
+    private func generateContent(in geometry: GeometryProxy) -> some View {
+        var width = CGFloat.zero
+        var height = CGFloat.zero
+        return ZStack(alignment: .topLeading) {
+            ForEach(Array(tags), id: \ .self) { tag in
+                content(tag)
+                    .padding(.trailing, 8)
+                    .alignmentGuide(.leading, computeValue: { d in
+                        if abs(width - d.width) > geometry.size.width {
+                            width = 0
+                            height -= d.height + 8
+                        }
+                        let result = width
+                        if tag == tags.last {
+                            width = 0 // 最后一个重置
+                        } else {
+                            width -= d.width + 8
+                        }
+                        return result
+                    })
+                    .alignmentGuide(.top, computeValue: { _ in
+                        let result = height
+                        if tag == tags.last {
+                            height = 0 // 最后一个重置
+                        }
+                        return result
+                    })
             }
         }
+        .background(viewHeightReader($totalHeight))
+    }
+    
+    private func viewHeightReader(_ binding: Binding<CGFloat>) -> some View {
+        GeometryReader { geometry in
+            Color.clear
+                .preference(key: ViewHeightKey.self, value: geometry.size.height)
+        }
+        .onPreferenceChange(ViewHeightKey.self) { value in
+            binding.wrappedValue = value
+        }
+    }
+}
+
+private struct ViewHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
