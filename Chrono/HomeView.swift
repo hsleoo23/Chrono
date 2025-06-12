@@ -6,6 +6,8 @@ struct HomeView: View {
     @Binding var showAddTodo: Bool
     @Binding var selectedTab: Int
     let tabs: [String]
+    @State private var showDoneToast: Bool = false
+    @State private var toastTitle: String = ""
     var allDayItems: [ScheduleItem] {
         store.todoItems.filter { $0.time == nil }
     }
@@ -48,119 +50,150 @@ struct HomeView: View {
         f.dateFormat = "HH:mm"
         return f
     }()
+    func handleDone(_ item: ScheduleItem) {
+        store.markAsDone(item)
+        toastTitle = item.title
+        showDoneToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            showDoneToast = false
+        }
+    }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // 顶部标题
-                Text("Today")
-                    .font(.system(size: 32, weight: .heavy))
-                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                    .padding(.top, 24)
-                    .padding(.leading, 24)
-                // Tab选择器
-                HStack(spacing: 0) {
-                    ForEach(0..<tabs.count, id: \.self) { idx in
-                        Button(action: { selectedTab = idx }) {
-                            ZStack {
-                                if selectedTab == idx {
-                                    RoundedRectangle(cornerRadius: 28)
-                                        .fill(Color.white)
-                                        .shadow(color: Color(red: 0.85, green: 0.8, blue: 0.75), radius: 0, x: 0, y: 0)
-                                } else {
-                                    Color.clear
-                                }
-                                Text(tabs[idx])
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(selectedTab == idx ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color(red: 0.6, green: 0.48, blue: 0.4))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                            }
-                        }
-                        .frame(height: 48)
-                    }
-                }
-                .background(Color(red: 0.92, green: 0.89, blue: 0.86))
-                .cornerRadius(28)
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
-                // todo内容区
-                if !allDayItems.isEmpty {
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.white)
-                            }
-                            Text("All Day")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                        }
-                        .frame(width: 60)
-                        VStack(spacing: 16) {
-                            ForEach(allDayItems) { item in
-                                ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { store.markAsDone(item) })
-                            }
-                        }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
-                    }
-                    .padding(.bottom, 40)
-                }
-                ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
-                    let (hour, items) = group
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                let hourStr = hourFormatter.string(from: hour)
-                                let hourInt = Int(hourStr.prefix(2)) ?? 0
-                                let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
-                                let symbolName = "clock.\(validHour).fill"
-                                if UIImage(systemName: symbolName) != nil {
-                                    Image(systemName: symbolName)
-                                        .foregroundColor(.white)
-                                } else {
-                                    Image(systemName: "clock.fill")
-                                        .foregroundColor(.white)
+        ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                // 顶部标题和tab选择器，固定不动
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Today")
+                        .font(.system(size: 32, weight: .heavy))
+                        .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                        .padding(.top, 24)
+                        .padding(.leading, 24)
+                    HStack(spacing: 0) {
+                        ForEach(0..<tabs.count, id: \.self) { idx in
+                            Button(action: { selectedTab = idx }) {
+                                ZStack {
+                                    if selectedTab == idx {
+                                        RoundedRectangle(cornerRadius: 28)
+                                            .fill(Color.white)
+                                            .shadow(color: Color(red: 0.85, green: 0.8, blue: 0.75), radius: 0, x: 0, y: 0)
+                                    } else {
+                                        Color.clear
+                                    }
+                                    Text(tabs[idx])
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(selectedTab == idx ? Color(red: 0.4, green: 0.32, blue: 0.24) : Color(red: 0.6, green: 0.48, blue: 0.4))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
                                 }
                             }
-                            Text(hourFormatter.string(from: hour))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                            if idx != timelineGroups.count - 1 {
-                                GeometryReader { geo in
-                                    Rectangle()
-                                        .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
-                                        .frame(width: 4, height: max(geo.size.height, 44))
+                            .frame(height: 48)
+                        }
+                    }
+                    .background(Color(red: 0.92, green: 0.89, blue: 0.86))
+                    .cornerRadius(28)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                }
+                // 内容区可滚动
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if !allDayItems.isEmpty {
+                            HStack(alignment: .top, spacing: 0) {
+                                VStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                            .frame(width: 32, height: 32)
+                                        Image(systemName: "clock.fill")
+                                            .foregroundColor(.white)
+                                    }
+                                    Text("All Day")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
                                         .offset(y: 8)
                                 }
-                                .frame(width: 4)
+                                .frame(width: 60)
+                                VStack(spacing: 16) {
+                                    ForEach(allDayItems) { item in
+                                        ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { handleDone(item) })
+                                    }
+                                }
+                                .padding(.leading, 0)
+                                .padding(.trailing, 16)
                             }
+                            .padding(.bottom, 40)
                         }
-                        .frame(width: 60)
-                        VStack(spacing: 12) {
-                            ForEach(items) { item in
-                                ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { store.markAsDone(item) })
+                        ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
+                            let (hour, items) = group
+                            HStack(alignment: .top, spacing: 0) {
+                                VStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                            .frame(width: 32, height: 32)
+                                        let hourStr = hourFormatter.string(from: hour)
+                                        let hourInt = Int(hourStr.prefix(2)) ?? 0
+                                        let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
+                                        let symbolName = "clock.\(validHour).fill"
+                                        if UIImage(systemName: symbolName) != nil {
+                                            Image(systemName: symbolName)
+                                                .foregroundColor(.white)
+                                        } else {
+                                            Image(systemName: "clock.fill")
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    Text(hourFormatter.string(from: hour))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                        .offset(y: 8)
+                                    if idx != timelineGroups.count - 1 {
+                                        GeometryReader { geo in
+                                            Rectangle()
+                                                .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
+                                                .frame(width: 4, height: max(geo.size.height, 44))
+                                                .offset(y: 8)
+                                        }
+                                        .frame(width: 4)
+                                    }
+                                }
+                                .frame(width: 60)
+                                VStack(spacing: 12) {
+                                    ForEach(items) { item in
+                                        ScheduleCardView(item: item, isDoneStyle: false, onCircleTap: { handleDone(item) })
+                                    }
+                                }
+                                .padding(.leading, 0)
+                                .padding(.trailing, 16)
+                                .background(
+                                    GeometryReader { geo in
+                                        Color.clear.preference(key: GroupHeightKey.self, value: geo.size.height)
+                                    }
+                                )
                             }
+                            .padding(.top, idx == 0 ? 0 : 32)
                         }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
-                        .background(
-                            GeometryReader { geo in
-                                Color.clear.preference(key: GroupHeightKey.self, value: geo.size.height)
-                            }
-                        )
+                        Spacer().frame(height: 100)
                     }
-                    .padding(.top, idx == 0 ? 0 : 32)
                 }
+            }
+            // 悬浮toast弹窗
+            if showDoneToast {
+                HStack {
+                    Spacer()
+                    Text("🎉 恭喜完成：\(toastTitle)")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Color(red: 0.25, green: 0.4, blue: 0.2))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.85, green: 0.96, blue: 0.85))
+                        .cornerRadius(18)
+                    Spacer()
+                }
+                .padding(.top, 110)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(), value: showDoneToast)
             }
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.96).ignoresSafeArea())

@@ -24,6 +24,7 @@ struct ScheduleItem: Identifiable {
     let subTag: String?
     let subTagColor: Color?
     let otherTags: [String]? // 新增，支持多个标签
+    let note: String? // 新增备注字段
 }
 
 // 用于动态获取分组高度

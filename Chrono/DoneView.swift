@@ -49,15 +49,14 @@ struct DoneView: View {
         return f
     }()
     var body: some View {
-        ScrollView {
+        VStack(spacing: 0) {
+            // 顶部标题和tab选择器，固定不动
             VStack(alignment: .leading, spacing: 0) {
-                // 顶部标题
                 Text("Today")
                     .font(.system(size: 32, weight: .heavy))
                     .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
                     .padding(.top, 24)
                     .padding(.leading, 24)
-                // Tab选择器
                 HStack(spacing: 0) {
                     ForEach(0..<tabs.count, id: \.self) { idx in
                         Button(action: { selectedTab = idx }) {
@@ -84,82 +83,87 @@ struct DoneView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
-                // done内容区
-                if !allDayItems.isEmpty {
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.white)
-                            }
-                            Text("All Day")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                        }
-                        .frame(width: 60)
-                        VStack(spacing: 16) {
-                            ForEach(allDayItems) { item in
-                                ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
-                            }
-                        }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
-                    }
-                    .padding(.bottom, 40)
-                }
-                ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
-                    let (hour, items) = group
-                    HStack(alignment: .top, spacing: 0) {
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                    .frame(width: 32, height: 32)
-                                let hourStr = hourFormatter.string(from: hour)
-                                let hourInt = Int(hourStr.prefix(2)) ?? 0
-                                let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
-                                let symbolName = "clock.\(validHour).fill"
-                                if UIImage(systemName: symbolName) != nil {
-                                    Image(systemName: symbolName)
-                                        .foregroundColor(.white)
-                                } else {
+            }
+            // 内容区可滚动
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if !allDayItems.isEmpty {
+                        HStack(alignment: .top, spacing: 0) {
+                            VStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                        .frame(width: 32, height: 32)
                                     Image(systemName: "clock.fill")
                                         .foregroundColor(.white)
                                 }
+                                Text("All Day")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                    .offset(y: 8)
                             }
-                            Text(hourFormatter.string(from: hour))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
-                                .offset(y: 8)
-                            if idx != timelineGroups.count - 1 {
-                                GeometryReader { geo in
-                                    Rectangle()
-                                        .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
-                                        .frame(width: 4, height: max(geo.size.height, 44))
-                                        .offset(y: 8)
+                            .frame(width: 60)
+                            VStack(spacing: 16) {
+                                ForEach(allDayItems) { item in
+                                    ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
                                 }
-                                .frame(width: 4)
                             }
+                            .padding(.leading, 0)
+                            .padding(.trailing, 16)
                         }
-                        .frame(width: 60)
-                        VStack(spacing: 12) {
-                            ForEach(items) { item in
-                                ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
-                            }
-                        }
-                        .padding(.leading, 0)
-                        .padding(.trailing, 16)
-                        .background(
-                            GeometryReader { geo in
-                                Color.clear.preference(key: GroupHeightKey.self, value: geo.size.height)
-                            }
-                        )
+                        .padding(.bottom, 40)
                     }
-                    .padding(.top, idx == 0 ? 0 : 32)
+                    ForEach(Array(timelineGroups.enumerated()).filter { !$0.element.1.isEmpty }, id: \.element.0) { idx, group in
+                        let (hour, items) = group
+                        HStack(alignment: .top, spacing: 0) {
+                            VStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                        .frame(width: 32, height: 32)
+                                    let hourStr = hourFormatter.string(from: hour)
+                                    let hourInt = Int(hourStr.prefix(2)) ?? 0
+                                    let validHour = (1...12).contains(hourInt) ? hourInt : ((hourInt - 1) % 12 + 1)
+                                    let symbolName = "clock.\(validHour).fill"
+                                    if UIImage(systemName: symbolName) != nil {
+                                        Image(systemName: symbolName)
+                                            .foregroundColor(.white)
+                                    } else {
+                                        Image(systemName: "clock.fill")
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                Text(hourFormatter.string(from: hour))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(red: 0.4, green: 0.32, blue: 0.24))
+                                    .offset(y: 8)
+                                if idx != timelineGroups.count - 1 {
+                                    GeometryReader { geo in
+                                        Rectangle()
+                                            .fill(Color(red: 0.85, green: 0.8, blue: 0.75))
+                                            .frame(width: 4, height: max(geo.size.height, 44))
+                                            .offset(y: 8)
+                                    }
+                                    .frame(width: 4)
+                                }
+                            }
+                            .frame(width: 60)
+                            VStack(spacing: 12) {
+                                ForEach(items) { item in
+                                    ScheduleCardView(item: item, isDoneStyle: true, onCircleTap: nil)
+                                }
+                            }
+                            .padding(.leading, 0)
+                            .padding(.trailing, 16)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.preference(key: GroupHeightKey.self, value: geo.size.height)
+                                }
+                            )
+                        }
+                        .padding(.top, idx == 0 ? 0 : 32)
+                    }
+                    Spacer().frame(height: 100)
                 }
             }
         }
