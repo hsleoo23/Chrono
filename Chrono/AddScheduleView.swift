@@ -107,6 +107,14 @@ struct AddScheduleView: View {
                         .frame(height: 36)
                         .contentShape(Rectangle())
                         .onTapGesture { showTagSheet = true }
+                        if !selectedTags.isEmpty {
+                            TagChipsGrid(tags: selectedTags, selectedTags: selectedTags, onTap: { tag in
+                                if let idx = selectedTags.firstIndex(of: tag) {
+                                    selectedTags.remove(at: idx)
+                                }
+                            })
+                            .padding(.top, 8)
+                        }
                     }
                 }
                 .sheet(isPresented: $showCategorySheet) {
