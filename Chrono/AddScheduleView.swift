@@ -332,6 +332,10 @@ struct AddScheduleView: View {
         .onAppear {
             categoryColors = globalCategoryColors
         }
+        .onChange(of: startTime) {
+            // 只要startTime变化，endTime自动变为startTime后60分钟
+            endTime = Calendar.current.date(byAdding: .minute, value: 60, to: startTime) ?? startTime
+        }
     }
     // 日期格式化
     func dateString(_ date: Date) -> String {
@@ -473,7 +477,7 @@ struct CategoryPickerSheet: View {
                     .padding(.vertical, 8)
                 }
                 .padding(.horizontal, 24)
-                Button("添加") {
+                Button(action: {
                     hideKeyboard()
                     let name = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else {
@@ -498,15 +502,16 @@ struct CategoryPickerSheet: View {
                     newCategory = ""
                     newColor = nil
                     onAddCategory?(name, color)
+                }) {
+                    Text("添加")
+                        .font(.system(size: 18, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(mainBrown)
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
                 }
-                .font(.system(size: 18, weight: .bold))
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(mainBrown)
-                .foregroundColor(.white)
-                .cornerRadius(16)
                 .padding(.horizontal, 24)
-                .contentShape(Rectangle())
                 Button("取消") {
                     showAddCategory = false
                     newCategory = ""

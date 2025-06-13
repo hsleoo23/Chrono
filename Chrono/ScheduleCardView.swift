@@ -47,92 +47,55 @@ struct ScheduleCardView: View {
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    // 主标签
-                    Text(item.tag)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(tagColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(tagColor.opacity(0.15))
-                        .cornerRadius(16)
-                    // Done页标题紧跟主标签
-                    if isDoneStyle {
+                if isDoneStyle {
+                    // done卡片顶部：主标签+标题+右上角开始时间
+                    HStack(alignment: .top) {
+                        Text(item.tag)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(tagColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(tagColor.opacity(0.15))
+                            .cornerRadius(16)
                         Text(item.title)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color(red: 0.308, green: 0.202, blue: 0.132))
-                    }
-                    Spacer()
-                    if isDoneStyle {
-                        // 右上角：开始时间
+                        Spacer()
                         if let start = startTime {
                             Text(start)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(Color(red: 0.7, green: 0.68, blue: 0.67))
                         }
-                    } else {
-                        // Todo页标题
-                        Text(item.title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(red: 0.308, green: 0.202, blue: 0.132))
                     }
-                }
-                // 第二行：Done页所有标签靠左，结束时间靠右
-                if isDoneStyle {
-                    if let duration = durationText {
-                        Text(duration)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(Color.gray.opacity(0.15))
-                            .cornerRadius(4)
-                    }
-                    // 横向流式布局展示所有标签，超出自动换行
+                    // 标签流式布局
                     FlexibleTagRow(tags: otherTags)
-                    Spacer()
-                    if let end = endTime {
-                        Text(end)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(red: 0.7, green: 0.68, blue: 0.67))
+                    // 右下角：结束时间
+                    HStack {
+                        Spacer()
+                        if let end = endTime {
+                            Text(end)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color(red: 0.7, green: 0.68, blue: 0.67))
+                        }
                     }
                 } else {
-                    // todo页也展示otherTags（只展示一个，其他用省略号）
-                    HStack(spacing: 6) {
-                        if let firstTag = otherTags.first {
-                            Text("#" + firstTag)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .background((globalCategoryColors[firstTag] ?? Color.gray).opacity(0.15))
-                                .cornerRadius(4)
-                            if otherTags.count > 1 {
-                                Text("…(共\(otherTags.count)个)")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundColor(Color.gray)
-                            }
-                        }
-                        Spacer()
-                        if let time = item.time {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock")
-                                    .foregroundColor(Color(red: 0.7, green: 0.68, blue: 0.67))
-                                    .font(.system(size: 13))
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .top) {
+                            Text(item.tag)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(tagColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(tagColor.opacity(0.15))
+                                .cornerRadius(16)
+                            Spacer()
+                            if let time = item.time {
                                 Text(time)
-                                    .font(.system(size: 13))
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(Color(red: 0.7, green: 0.68, blue: 0.67))
                             }
                         }
-                        if let subTag = item.subTag {
-                            Text("#" + subTag)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .background((globalCategoryColors[subTag] ?? Color.gray).opacity(0.15))
-                                .cornerRadius(4)
-                        }
+                        FlexibleTitleTagRow(title: item.title, tags: otherTags)
                     }
                 }
             }
@@ -162,6 +125,31 @@ struct FlexibleTagRow: View {
                 .padding(.vertical, 2)
                 .background((globalCategoryColors[tag] ?? Color.gray).opacity(0.15))
                 .cornerRadius(4)
+        }
+    }
+}
+
+// 标题+标签流式布局：标题和标签同行，标签放不下自动换行到下一行
+struct FlexibleTitleTagRow: View {
+    let title: String
+    let tags: [String]
+    var body: some View {
+        FlexibleView(data: [title] + tags, spacing: 6, alignment: .leading) { item in
+            Group {
+                if item == title {
+                    Text(item)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.308, green: 0.202, blue: 0.132))
+                } else {
+                    Text("#" + item)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(red: 0.451, green: 0.418, blue: 0.4))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background((globalCategoryColors[item] ?? Color.gray).opacity(0.15))
+                        .cornerRadius(4)
+                }
+            }
         }
     }
 }
