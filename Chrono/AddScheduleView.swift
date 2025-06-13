@@ -21,6 +21,38 @@ let tagGroups: [TagGroup] = [
     TagGroup(name: "时间性质", color: Color.blue, tags: ["重要紧急", "重要不紧急", "不重要紧急", "不重要不紧急"])
 ]
 
+// 只保留tagColors中的8个日历类别为默认
+let defaultCategories: [String: Color] = [
+    "健康": Color.green,
+    "能量": Color.yellow,
+    "补充": Color.purple,
+    "有氧": Color.cyan,
+    "户外": Color.brown,
+    "打工": Color.blue,
+    "专注": Color.indigo,
+    "运动": Color.pink
+]
+
+// UserDefaults持久化相关
+let categoryColorsKey = "categoryColorsKey"
+
+func saveCategoryColors(_ dict: [String: Color]) {
+    let codableDict = dict.mapValues { ColorCodable(color: $0) }
+    if let data = try? JSONEncoder().encode(codableDict) {
+        UserDefaults.standard.set(data, forKey: categoryColorsKey)
+    }
+}
+
+func loadCategoryColors() -> [String: Color] {
+    if let data = UserDefaults.standard.data(forKey: categoryColorsKey),
+       let codableDict = try? JSONDecoder().decode([String: ColorCodable].self, from: data) {
+        return codableDict.mapValues { $0.color }
+    }
+    return defaultCategories // 默认初始
+}
+
+var globalCategoryColors: [String: Color] = loadCategoryColors()
+
 struct AddScheduleView: View {
     @Binding var showAddTodo: Bool
     @State private var selectedType: String = "日程"
@@ -35,10 +67,11 @@ struct AddScheduleView: View {
     @State private var note: String = ""
     @State private var showStartPicker: Bool = false
     @State private var showEndPicker: Bool = false
-    // 示例类别和标签
-    let categories = ["运动", "工作", "学习", "娱乐", "饮食", "其他"]
-    let tags = ["健康", "能量", "补充", "有氧", "户外", "打工", "专注"]
-    @State private var categoryColors: [String: Color] = tagColors
+    // 类别颜色直接用全局映射
+    @State private var categoryColors: [String: Color] = globalCategoryColors
+    @EnvironmentObject var store: ScheduleStore
+    // 只保留tagColors中的8个日历类别
+    let availableCategories = ["健康", "能量", "补充", "有氧", "户外", "打工", "专注", "运动"]
     var body: some View {
         ZStack {
             mainBg.ignoresSafeArea()
@@ -91,7 +124,10 @@ struct AddScheduleView: View {
                         }
                         .frame(height: 36)
                         .contentShape(Rectangle())
-                        .onTapGesture { showCategorySheet = true }
+                        .onTapGesture {
+                            hideKeyboard()
+                            showCategorySheet = true
+                        }
                         Divider().padding(.vertical, 2)
                         HStack {
                             Text("标签")
@@ -109,7 +145,10 @@ struct AddScheduleView: View {
                         }
                         .frame(height: 36)
                         .contentShape(Rectangle())
-                        .onTapGesture { showTagSheet = true }
+                        .onTapGesture {
+                            hideKeyboard()
+                            showTagSheet = true
+                        }
                         if !selectedTags.isEmpty {
                             TagChipsGrid(tags: selectedTags, selectedTags: selectedTags, onTap: { tag in
                                 if let idx = selectedTags.firstIndex(of: tag) {
@@ -128,6 +167,12 @@ struct AddScheduleView: View {
                         onSelect: { cat in
                             selectedCategory = cat
                             showCategorySheet = false
+                        },
+                        onAddCategory: { name, color in
+                            // 新增类别时，所有地方同步更新
+                            categoryColors[name] = color
+                            globalCategoryColors[name] = color
+                            saveCategoryColors(globalCategoryColors)
                         }
                     )
                     .presentationDetents([.fraction(0.45)])
@@ -247,7 +292,23 @@ struct AddScheduleView: View {
                 }
                 Spacer()
                 // 新建按钮
-                Button(action: { /* 保存逻辑 */ }) {
+                Button(action: {
+                    print("新建前数量：", store.todoItems.count)
+                    let timeStr: String? = isAllDay ? nil : "\(timeString(startTime)) - \(timeString(endTime))"
+                    let newItem = ScheduleItem(
+                        type: selectedType,
+                        title: title,
+                        tag: selectedCategory,
+                        time: timeStr,
+                        subTag: nil,
+                        subTagColor: nil,
+                        otherTags: selectedTags,
+                        note: note.isEmpty ? nil : note
+                    )
+                    store.todoItems.insert(newItem, at: 0)
+                    print("新建后数量：", store.todoItems.count)
+                    showAddTodo = false
+                }) {
                     Text("新建")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
@@ -267,6 +328,9 @@ struct AddScheduleView: View {
             )
             .presentationDetents([.fraction(0.8)])
             .presentationDragIndicator(.visible)
+        }
+        .onAppear {
+            categoryColors = globalCategoryColors
         }
     }
     // 日期格式化
@@ -296,21 +360,41 @@ struct Card<Content: View>: View {
     }
 }
 
+// 辅助函数：收起键盘
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
 // 新增类别选择弹窗组件
 struct CategoryPickerSheet: View {
     @State private var showAddCategory: Bool = false
     @State private var newCategory: String = ""
-    @State private var newColor: Color = .blue
+    @State private var newColor: Color? = nil
+    @State private var showAlert: Bool = false
+    @State private var alertMsg: String = ""
     @State private var categoriesState: [String]
     @Binding var categoryColors: [String: Color]
     let selected: String
     let onSelect: (String) -> Void
-    init(categories: [String], selected: String, categoryColors: Binding<[String: Color]>, onSelect: @escaping (String) -> Void) {
+    var onAddCategory: ((String, Color) -> Void)? = nil
+    init(categories: [String], selected: String, categoryColors: Binding<[String: Color]>, onSelect: @escaping (String) -> Void, onAddCategory: ((String, Color) -> Void)? = nil) {
         self.selected = selected
         self.onSelect = onSelect
+        self.onAddCategory = onAddCategory
         _categoriesState = State(initialValue: categories)
         _categoryColors = categoryColors
     }
+    // 32种主流色
+    let colorPalette: [Color] = [
+        .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .brown,
+        Color(red:1,green:0.5,blue:0.5), Color(red:1,green:0.7,blue:0.2), Color(red:0.9,green:0.9,blue:0.2), Color(red:0.5,green:1,blue:0.5),
+        Color(red:0.2,green:0.8,blue:0.7), Color(red:0.2,green:0.7,blue:1), Color(red:0.4,green:0.4,blue:1), Color(red:0.7,green:0.4,blue:1),
+        Color(red:1,green:0.4,blue:1), Color(red:1,green:0.4,blue:0.7), Color(red:0.7,green:0.7,blue:0.7), Color(red:0.5,green:0.5,blue:0.5),
+        Color(red:0.8,green:0.6,blue:0.4), Color(red:0.6,green:0.8,blue:0.4), Color(red:0.4,green:0.8,blue:0.6), Color(red:0.4,green:0.6,blue:0.8),
+        Color(red:0.6,green:0.4,blue:0.8), Color(red:0.8,green:0.4,blue:0.6), Color(red:0.9,green:0.7,blue:0.5), Color(red:0.7,green:0.9,blue:0.5)
+    ]
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -318,7 +402,10 @@ struct CategoryPickerSheet: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(mainBrown)
                 Spacer()
-                Button(action: { showAddCategory = true }) {
+                Button(action: {
+                    hideKeyboard()
+                    showAddCategory = true
+                }) {
                     Image(systemName: "plus")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(mainBrown.opacity(0.5))
@@ -363,23 +450,54 @@ struct CategoryPickerSheet: View {
                 TextField("请输入类别名称", text: $newCategory)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal, 24)
+                    .onTapGesture { }
                 HStack {
                     Text("选择颜色：")
                         .font(.system(size: 16))
-                    ColorPicker("", selection: $newColor, supportsOpacity: false)
-                        .labelsHidden()
+                    // 32色块选择器
+                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 8), count: 8), spacing: 8) {
+                        ForEach(colorPalette, id: \.self) { color in
+                            Circle()
+                                .fill(color)
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.black.opacity(newColor == color ? 0.5 : 0), lineWidth: 2)
+                                )
+                                .onTapGesture {
+                                    hideKeyboard()
+                                    newColor = color
+                                }
+                        }
+                    }
+                    .padding(.vertical, 8)
                 }
                 .padding(.horizontal, 24)
                 Button("添加") {
+                    hideKeyboard()
                     let name = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !name.isEmpty && !categoriesState.contains(name) {
-                        categoriesState.append(name)
-                        categoryColors[name] = newColor
-                        onSelect(name)
-                        showAddCategory = false
-                        newCategory = ""
-                        newColor = .blue
+                    guard !name.isEmpty else {
+                        alertMsg = "类别名不能为空"
+                        showAlert = true
+                        return
                     }
+                    guard let color = newColor else {
+                        alertMsg = "请选择颜色"
+                        showAlert = true
+                        return
+                    }
+                    guard !categoriesState.contains(name) else {
+                        alertMsg = "该类别已存在"
+                        showAlert = true
+                        return
+                    }
+                    categoriesState.append(name)
+                    categoryColors[name] = color
+                    onSelect(name)
+                    showAddCategory = false
+                    newCategory = ""
+                    newColor = nil
+                    onAddCategory?(name, color)
                 }
                 .font(.system(size: 18, weight: .bold))
                 .frame(maxWidth: .infinity)
@@ -388,13 +506,17 @@ struct CategoryPickerSheet: View {
                 .foregroundColor(.white)
                 .cornerRadius(16)
                 .padding(.horizontal, 24)
+                .contentShape(Rectangle())
                 Button("取消") {
                     showAddCategory = false
                     newCategory = ""
-                    newColor = .blue
+                    newColor = nil
                 }
                 .foregroundColor(.gray)
                 .padding(.bottom, 24)
+            }
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("提示"), message: Text(alertMsg), dismissButton: .default(Text("确定")))
             }
             .presentationDetents([.fraction(0.38)])
             .presentationDragIndicator(.visible)
